@@ -856,12 +856,18 @@ typedef struct {
 	ut8 opcode;
 	struct {
 		union {
-			ut64 advance_pc;
-			st64 advance_line;
-			ut64 set_file;
-			ut64 set_column;
-			ut64 fixed_advance_pc;
-			ut64 set_isa;
+			ut64 advance_pc; //< DW_LNS_advance_pc
+			st64 advance_line; //< DW_LNS_advance_line
+			ut64 set_file; //< DW_LNS_set_file
+			ut64 set_column; //< DW_LNS_set_column
+			ut64 fixed_advance_pc; //< DW_LNS_fixed_advance_pc
+			ut64 set_isa; //< DW_LNS_set_isa
+			ut64 set_address; //< DW_LNE_set_address
+			struct {
+				char *filename;
+				ut64 dir_index;
+			} define_file; //< DW_LNE_define_file
+			ut64 set_discriminator //< DW_LNE_set_discriminator
 		};
 	} args;
 } RzBinDwarfLineOp;
@@ -940,6 +946,7 @@ RZ_API ut64 rz_bin_dwarf_line_header_get_spec_op_advance_pc(const RzBinDwarfLine
 RZ_API st64 rz_bin_dwarf_line_header_get_spec_op_advance_line(const RzBinDwarfLineHeader *header, ut8 opcode);
 RZ_API void rz_bin_dwarf_line_header_reset_regs(const RzBinDwarfLineHeader *hdr, RzBinDwarfSMRegisters *regs);
 RZ_API bool rz_bin_dwarf_line_op_run(Sdb *sdb_addrinfo, RzBinDwarfLineHeader *hdr, RzBinDwarfSMRegisters *regs, RzBinDwarfLineOp *op);
+RZ_API void rz_bin_dwarf_line_op_fini(RzBinDwarfLineOp *op);
 RZ_API void rz_bin_dwarf_line_info_free(RzBinDwarfLineInfo *li);
 
 #ifdef __cplusplus

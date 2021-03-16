@@ -627,16 +627,11 @@ static const ut8 *parse_line_header(
 	return buf;
 }
 
-typedef struct {
-	RzBinDwarfLineHeader *header;
-
-	/**
-	 * if not null, all opcodes should be executed on regs
-	 * while parsing and the resulting line info filled into this sdb.
-	 */
-	RZ_NULLABLE Sdb *sdb_addrline;
-	RzBinDwarfSMRegisters regs;
-} ParseLineOpCtx;
+RZ_API void rz_bin_dwarf_line_op_fini(RzBinDwarfLineOp *op) {
+	if (op->type == RZ_BIN_DWARF_LINE_OP_TYPE_EXT && op->opcode == DW_LNE_define_file) {
+		free(op->args.define_file.filename);
+	}
+}
 
 static inline void add_sdb_addrline(Sdb *s, ut64 addr, const char *file, ut64 line) {
 	const char *p;
@@ -678,12 +673,51 @@ static inline void add_sdb_addrline(Sdb *s, ut64 addr, const char *file, ut64 li
 	free(fileline);
 }
 
-static const ut8 *parse_ext_opcode(const RzBin *bin, const ut8 *obuf,
-	size_t len, const RzBinDwarfLineHeader *hdr,
-	RzBinDwarfSMRegisters *regs, int mode, bool big_endian) {
+static const ut8 *parse_ext_opcode(RzBinDwarfLineOp *op, const RzBinDwarfLineHeader *hdr, const ut8 *obuf, size_t len, bool big_endian) {
+	rz_return_val_if_fail(op && hdr && obuf, NULL);
+	const ut8 *buf = obuf;
+	const ut8 *buf_end = obuf + len;
 
-	rz_return_val_if_fail(bin && bin->cur && obuf && hdr && regs, NULL);
+	ut64 op_len;
+	buf = rz_uleb128(buf, len, &op_len, NULL);
+	if (!buf || buf >= buf_end || !op_len || buf_end - buf < op_len) {
+		return NULL;
+	}
 
+	ut8 opcode = *buf++;
+	op->type = RZ_BIN_DWARF_LINE_OP_TYPE_EXT;
+	op->opcode = opcode;
+
+	switch (opcode) {
+	case DW_LNE_set_address:
+		op->args.set_address = dwarf_read_address(hdr->address_size, big_endian, &buf, buf_end);
+		break;
+	case DW_LNE_define_file:
+		op->args.define_file.filename = strndup((const char *)buf, buf_end - buf);
+		if (!op->args.define_file.filename) {
+			return NULL;
+		}
+		buf += strlen(op->args.define_file.filename) + 1;
+		if (buf + 1 < buf_end) {
+			buf = rz_uleb128(buf, buf_end - buf, &op->args.define_file.dir_index, NULL);
+		}
+		if (buf && buf + 1 < buf_end) {
+			buf = rz_uleb128(buf, buf_end - buf, NULL, NULL);
+		}
+		if (buf && buf + 1 < buf_end) {
+			buf = rz_uleb128(buf, buf_end - buf, NULL, NULL);
+		}
+		break;
+	case DW_LNE_set_discriminator:
+		buf = rz_uleb128(buf, buf_end - buf, &op->args.set_discriminator, NULL);
+		break;
+	case DW_LNE_end_sequence:
+	default:
+		buf += op_len;
+		break;
+	}
+
+#if 0
 	PrintfCallback print = bin->cb_printf;
 	const ut8 *buf;
 	const ut8 *buf_end;
@@ -695,15 +729,6 @@ static const ut8 *parse_ext_opcode(const RzBin *bin, const ut8 *obuf,
 	RzBinObject *o = binfile->o;
 	ut32 addr_size = o && o->info && o->info->bits ? o->info->bits / 8 : 4;
 	const char *filename;
-
-	buf_end = buf + len;
-	buf = rz_leb128(buf, len, &op_len);
-	if (buf >= buf_end) {
-		return NULL;
-	}
-
-	opcode = *buf++;
-
 	if (mode == RZ_MODE_PRINT) {
 		print("  Extended opcode %d: ", opcode);
 	}
@@ -772,6 +797,7 @@ static const ut8 *parse_ext_opcode(const RzBin *bin, const ut8 *obuf,
 		buf = NULL;
 		break;
 	}
+#endif
 
 	return buf;
 }
@@ -947,8 +973,9 @@ static size_t parse_opcodes(const RzBin *bin, const ut8 *obuf,
 		RzBinDwarfLineOp op = { 0 };
 		if (!opcode) {
 			ext_opcode = *buf;
-			buf = parse_ext_opcode(bin, buf, len, hdr, regs, mode, big_endian);
+			buf = parse_ext_opcode(&op, hdr, buf, len, big_endian);
 			if (!buf || ext_opcode == DW_LNE_end_sequence) {
+				// TODO: move to run
 				rz_bin_dwarf_line_header_reset_regs(hdr, regs); // end_sequence should reset regs to default
 				break;
 			}
