@@ -295,7 +295,7 @@ struct rz_bin_file_t {
 	RzList *xtr_data;
 	Sdb *sdb;
 	Sdb *sdb_info;
-	Sdb *sdb_addrinfo;
+	RZ_DEPRECATE Sdb *sdb_addrinfo; //< deprecated to use for new code, should be refactored
 	struct rz_bin_t *rbin;
 }; // RzBinFile
 
@@ -419,6 +419,15 @@ typedef struct rz_bin_trycatch_t {
 RZ_API RzBinTrycatch *rz_bin_trycatch_new(ut64 source, ut64 from, ut64 to, ut64 handler, ut64 filter);
 RZ_API void rz_bin_trycatch_free(RzBinTrycatch *tc);
 
+typedef struct {
+	ut64 address;
+	char *file;
+	unsigned int line;
+	unsigned int column;
+} RzBinSourceRow;
+
+RZ_API void rz_bin_source_row_free(RzBinSourceRow *row);
+
 typedef struct rz_bin_plugin_t {
 	char *name;
 	char *desc;
@@ -438,7 +447,7 @@ typedef struct rz_bin_plugin_t {
 	RzBinAddr *(*binsym)(RzBinFile *bf, int num);
 	RzList /*<RzBinAddr>*/ *(*entries)(RzBinFile *bf);
 	RzList /*<RzBinSection>*/ *(*sections)(RzBinFile *bf);
-	RZ_BORROW RzList /*<RzBinDwarfRow>*/ *(*lines)(RzBinFile *bf);
+	RZ_BORROW RzList /*<RzBinSourceRow>*/ *(*lines)(RzBinFile *bf);
 	RzList /*<RzBinSymbol>*/ *(*symbols)(RzBinFile *bf);
 	RzList /*<RzBinImport>*/ *(*imports)(RzBinFile *bf);
 	RzList /*<RzBinString>*/ *(*strings)(RzBinFile *bf);

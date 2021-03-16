@@ -1145,7 +1145,7 @@ static void file_lines_free_kv(HtPPKv *kv) {
 
 static bool bin_dwarf(RzCore *core, RzBinFile *binfile, PJ *pj, int mode) {
 	rz_return_val_if_fail(core && binfile, false);
-	RzBinDwarfRow *row;
+	RzBinSourceRow *row;
 	RzListIter *iter;
 	if (!rz_config_get_i(core->config, "bin.dbginfo")) {
 		return false;
@@ -1192,10 +1192,13 @@ static bool bin_dwarf(RzCore *core, RzBinFile *binfile, PJ *pj, int mode) {
 				rz_list_free(aranges);
 			}
 		}
-		RzList *lines;
-		list = ownlist = rz_bin_dwarf_parse_line(binfile, mode, &lines);
-		if (lines && mode == RZ_MODE_PRINT) {
-			rz_core_bin_dwarf_print_lines(lines);
+		RzList *lines = rz_bin_dwarf_parse_line(binfile,
+				RZ_BIN_DWARF_LINE_INFO_MASK_ROWS | (mode == RZ_MODE_PRINT ? RZ_BIN_DWARF_LINE_INFO_MASK_OPS : 0));
+		if (lines) {
+			if (mode == RZ_MODE_PRINT) {
+				rz_core_bin_dwarf_print_lines(lines);
+			}
+			// TODO: copy rows
 			rz_list_free(lines);
 		}
 		rz_bin_dwarf_debug_abbrev_free(da);

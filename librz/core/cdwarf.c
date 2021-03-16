@@ -380,12 +380,28 @@ RZ_API void rz_core_bin_dwarf_print_lines(RzList /*<RzBinDwarfLineInfo>*/ *lines
 			rz_bin_dwarf_line_header_reset_regs(&li->header, &regs);
 			rz_cons_print(" Line Number Statements:\n");
 			for (size_t i = 0; i < li->ops_count; i++) {
-				rz_bin_dwarf_line_op_run(NULL, &li->header, &regs, &li->ops[i]);
+				rz_bin_dwarf_line_op_run(&li->header, &regs, &li->ops[i], NULL, NULL);
 				rz_cons_print("  ");
 				print_line_op(&li->ops[i], &li->header, &regs);
 			}
 			rz_cons_print("\n");
 		}
+#if 0
+		if (li->samples_count && li->samples) {
+			rz_cons_print("\n");
+			for (size_t i = 0; i < li->samples_count; i++) {
+				RzBinDwarfLineSample *sample = &li->samples[i];
+				char *full_file = rz_bin_dwarf_line_header_get_full_file_path(sdb_addrinfo, &li->header, sample->file_index);
+				if (!full_file) {
+					continue;
+				}
+				rz_cons_printf("0x%" PFMT64x "  %s %3" PFMT64u "/%" PFMT64u "\n",
+					sample->address, full_file, sample->line, sample->column);
+				free(full_file);
+			}
+			rz_cons_print("\n");
+		}
+#endif
 	}
 	rz_cons_print("\n");
 }

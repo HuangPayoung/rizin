@@ -7,8 +7,6 @@
 #include <rz_core.h>
 #include <rz_bin_dwarf.h>
 
-#define MODE 2
-
 #define check_abbrev_code(expected_code) \
 	mu_assert_eq(da->decls[i].code, expected_code, "Wrong abbrev code");
 
@@ -31,8 +29,8 @@
  * @brief Comparator to sort list of line statements by address(collection of DwarfRows)
  */
 int row_comparator(const void *a, const void *b) {
-	const RzBinDwarfRow *left = a;
-	const RzBinDwarfRow *right = b;
+	const RzBinSourceRow *left = a;
+	const RzBinSourceRow *right = b;
 
 	return (left->address >= right->address) ? 1 : -1;
 }
@@ -131,10 +129,10 @@ bool test_dwarf3_c_basic(void) { // this should work for dwarf2 aswell
 	}
 	i++;
 
-	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, MODE, NULL);
+	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, RZ_BIN_DWARF_LINE_INFO_MASK_OPS | RZ_BIN_DWARF_LINE_INFO_MASK_ROWS);
 	mu_assert_eq(rz_list_length(line_list), 8, "Amount of line information parse doesn't match");
 
-	RzBinDwarfRow *row;
+	RzBinSourceRow *row;
 	RzListIter *iter;
 
 	// sort it so it can be more consistently tested?
@@ -486,10 +484,10 @@ bool test_dwarf3_cpp_basic(void) { // this should work for dwarf2 aswell
 
 	// rz_bin_dwarf_parse_aranges (core->bin, MODE); Information not stored anywhere, not testable now?
 
-	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, MODE, NULL);
+	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, RZ_BIN_DWARF_LINE_INFO_MASK_OPS | RZ_BIN_DWARF_LINE_INFO_MASK_ROWS);
 	mu_assert_eq(rz_list_length(line_list), 60, "Amount of line information parse doesn't match");
 
-	RzBinDwarfRow *row;
+	RzBinSourceRow *row;
 	RzListIter *iter;
 
 	// sort it so it can be more consistently tested?
@@ -598,10 +596,10 @@ bool test_dwarf3_cpp_many_comp_units(void) {
 	check_abbrev_children(false);
 	check_abbrev_code(18);
 
-	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, MODE, NULL);
+	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, RZ_BIN_DWARF_LINE_INFO_MASK_OPS | RZ_BIN_DWARF_LINE_INFO_MASK_ROWS);
 	mu_assert_eq(rz_list_length(line_list), 64, "Amount of line information parse doesn't match");
 
-	RzBinDwarfRow *row;
+	RzBinSourceRow *row;
 	RzListIter *iter;
 
 	// sort it so it can be more consistently tested?
@@ -705,10 +703,10 @@ bool test_dwarf_cpp_empty_line_info(void) { // this should work for dwarf2 aswel
 	// not ignoring null entries -> 755 abbrevs
 	mu_assert_eq(da->count, 731, "Incorrect number of abbreviation");
 
-	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, MODE, NULL);
+	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, RZ_BIN_DWARF_LINE_INFO_MASK_OPS | RZ_BIN_DWARF_LINE_INFO_MASK_ROWS);
 	mu_assert_eq(rz_list_length(line_list), 771, "Amount of line information parse doesn't match");
 
-	RzBinDwarfRow *row;
+	RzBinSourceRow *row;
 	RzListIter *iter;
 
 	// sort it so it can be more consistently tested?
@@ -783,10 +781,10 @@ bool test_dwarf2_cpp_many_comp_units(void) {
 	check_abbrev_children(false);
 	check_abbrev_code(18);
 
-	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, MODE, NULL);
+	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, RZ_BIN_DWARF_LINE_INFO_MASK_OPS | RZ_BIN_DWARF_LINE_INFO_MASK_ROWS);
 	mu_assert_eq(rz_list_length(line_list), 64, "Amount of line information parse doesn't match");
 
-	RzBinDwarfRow *row;
+	RzBinSourceRow *row;
 	RzListIter *iter;
 
 	rz_list_sort(line_list, row_comparator);
@@ -882,10 +880,10 @@ bool test_dwarf4_cpp_many_comp_units(void) {
 
 	// TODO add abbrev checks
 
-	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, MODE, NULL);
+	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, RZ_BIN_DWARF_LINE_INFO_MASK_OPS | RZ_BIN_DWARF_LINE_INFO_MASK_ROWS);
 	mu_assert_eq(rz_list_length(line_list), 75, "Amount of line information parse doesn't match");
 
-	RzBinDwarfRow *row;
+	RzBinSourceRow *row;
 	RzListIter *iter;
 
 	rz_list_sort(line_list, row_comparator);
@@ -988,10 +986,10 @@ bool test_big_endian_dwarf2(void) {
 	bool res = rz_bin_open(bin, "bins/elf/ppc64_sudoku_dwarf", &opt);
 	mu_assert("couldn't open file", res);
 
-	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, MODE, NULL);
+	RzList *line_list = rz_bin_dwarf_parse_line(bin->cur, RZ_BIN_DWARF_LINE_INFO_MASK_OPS | RZ_BIN_DWARF_LINE_INFO_MASK_ROWS);
 	mu_assert_eq(rz_list_length(line_list), 273, "Amount of line information parse doesn't match");
 
-	RzBinDwarfRow *row;
+	RzBinSourceRow *row;
 	RzListIter *iter;
 
 	rz_list_sort(line_list, row_comparator);

@@ -647,13 +647,6 @@ typedef struct {
 	int end_sequence;
 } RzBinDwarfState;
 
-typedef struct {
-	ut64 address;
-	char *file;
-	unsigned int line;
-	unsigned int column;
-} RzBinDwarfRow;
-
 #define DWARF_INIT_LEN_64 0xffffffff
 typedef union {
 	ut32 offset32;
@@ -882,8 +875,7 @@ typedef struct {
 	size_t ops_count;
 	RzBinDwarfLineOp *ops;
 
-	size_t rows_count;
-	RzBinDwarfRow *rows;
+	RzList *rows;
 } RzBinDwarfLineInfo;
 
 typedef enum {
@@ -939,13 +931,14 @@ RZ_API void rz_bin_dwarf_loc_free(HtUP /*<offset, RzBinDwarfLocList*>*/ *loc_tab
 RZ_API void rz_bin_dwarf_debug_info_free(RzBinDwarfDebugInfo *inf);
 RZ_API void rz_bin_dwarf_debug_abbrev_free(RzBinDwarfDebugAbbrev *da);
 
-RZ_API RzList *rz_bin_dwarf_parse_line(RzBinFile *binfile, int mode, RzList **the_actual_result);
-RZ_API char *rz_bin_dwarf_line_header_get_full_file_path(Sdb *sdb_addrinfo, const RzBinDwarfLineHeader *header, const RzBinDwarfLineFileEntry *file);
+RZ_API RzList *rz_bin_dwarf_parse_line(RzBinFile *binfile, RzBinDwarfLineInfoMask mask);
+RZ_API char *rz_bin_dwarf_line_header_get_full_file_path(Sdb *sdb_addrinfo, const RzBinDwarfLineHeader *header, ut64 file_index);
 RZ_API ut64 rz_bin_dwarf_line_header_get_adj_opcode(const RzBinDwarfLineHeader *header, ut8 opcode);
 RZ_API ut64 rz_bin_dwarf_line_header_get_spec_op_advance_pc(const RzBinDwarfLineHeader *header, ut8 opcode);
 RZ_API st64 rz_bin_dwarf_line_header_get_spec_op_advance_line(const RzBinDwarfLineHeader *header, ut8 opcode);
 RZ_API void rz_bin_dwarf_line_header_reset_regs(const RzBinDwarfLineHeader *hdr, RzBinDwarfSMRegisters *regs);
-RZ_API bool rz_bin_dwarf_line_op_run(Sdb *sdb_addrinfo, RzBinDwarfLineHeader *hdr, RzBinDwarfSMRegisters *regs, RzBinDwarfLineOp *op);
+RZ_API bool rz_bin_dwarf_line_op_run(const RzBinDwarfLineHeader *hdr, RzBinDwarfSMRegisters *regs, RzBinDwarfLineOp *op,
+		RZ_NULLABLE RZ_OUT RzList /*<RzBinSourceRow>*/ *rows_out, RZ_DEPRECATE Sdb *sdb_addrinfo);
 RZ_API void rz_bin_dwarf_line_op_fini(RzBinDwarfLineOp *op);
 RZ_API void rz_bin_dwarf_line_info_free(RzBinDwarfLineInfo *li);
 
