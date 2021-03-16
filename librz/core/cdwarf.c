@@ -246,7 +246,7 @@ static void print_line_op(RzBinDwarfLineOp *op, RzBinDwarfLineHeader *hdr, RZ_NU
 	case RZ_BIN_DWARF_LINE_OP_TYPE_STD:
 		switch (op->opcode) {
 		case DW_LNS_copy:
-			rz_cons_print("Copy\n");
+			rz_cons_print("Copy");
 			break;
 		case DW_LNS_advance_pc:
 			rz_cons_printf("Advance PC by %" PFMT64u, op->args.advance_pc * hdr->min_inst_len);
@@ -296,11 +296,30 @@ static void print_line_op(RzBinDwarfLineOp *op, RzBinDwarfLineHeader *hdr, RZ_NU
 			rz_cons_printf("set_isa to %" PFMT64u, op->args.set_isa);
 			break;
 		default:
-			rz_cons_printf("Unknown Standard Opcode %u\n", (unsigned int)op->opcode);
+			rz_cons_printf("Unknown Standard Opcode %u", (unsigned int)op->opcode);
 			break;
 		}
 		break;
 	case RZ_BIN_DWARF_LINE_OP_TYPE_EXT:
+		switch (op->opcode) {
+		case DW_LNE_end_sequence:
+			rz_cons_print("End of Sequence");
+			break;
+		case DW_LNE_set_address:
+			rz_cons_printf("set Address to 0x%" PFMT64x "\n", op->args.set_address);
+			break;
+		case DW_LNE_define_file:
+			rz_cons_printf("define_file \"%s\", dir_index %" PFMT64u ", ",
+				op->args.define_file.filename,
+				op->args.define_file.dir_index);
+			break;
+		case DW_LNE_set_discriminator:
+			rz_cons_printf("set Discriminator to %" PFMT64u "\n", op->args.set_discriminator);
+			break;
+		default:
+			rz_cons_printf("Unknown Extended Opcode %u", (unsigned int)op->opcode);
+			break;
+		}
 		break;
 	case RZ_BIN_DWARF_LINE_OP_TYPE_SPEC:
 		rz_cons_printf("  Special opcode %u: ", (unsigned int)rz_bin_dwarf_line_header_get_adj_opcode(hdr, op->opcode));

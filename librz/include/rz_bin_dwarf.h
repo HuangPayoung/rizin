@@ -867,7 +867,7 @@ typedef struct {
 				char *filename;
 				ut64 dir_index;
 			} define_file; //< DW_LNE_define_file
-			ut64 set_discriminator //< DW_LNE_set_discriminator
+			ut64 set_discriminator; //< DW_LNE_set_discriminator
 		};
 	} args;
 } RzBinDwarfLineOp;

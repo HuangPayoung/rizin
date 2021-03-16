@@ -716,89 +716,6 @@ static const ut8 *parse_ext_opcode(RzBinDwarfLineOp *op, const RzBinDwarfLineHea
 		buf += op_len;
 		break;
 	}
-
-#if 0
-	PrintfCallback print = bin->cb_printf;
-	const ut8 *buf;
-	const ut8 *buf_end;
-	ut8 opcode;
-	ut64 addr;
-	buf = obuf;
-	st64 op_len;
-	RzBinFile *binfile = bin->cur;
-	RzBinObject *o = binfile->o;
-	ut32 addr_size = o && o->info && o->info->bits ? o->info->bits / 8 : 4;
-	const char *filename;
-	if (mode == RZ_MODE_PRINT) {
-		print("  Extended opcode %d: ", opcode);
-	}
-
-	switch (opcode) {
-	case DW_LNE_end_sequence:
-		regs->end_sequence = DWARF_TRUE;
-
-		if (binfile && binfile->sdb_addrinfo && hdr->file_names) {
-			int fnidx = regs->file - 1;
-			if (fnidx >= 0 && fnidx < hdr->file_names_count) {
-				char *full_file = rz_bin_dwarf_line_header_get_full_file_path(binfile->sdb_addrinfo,
-					hdr, &hdr->file_names[fnidx]);
-				add_sdb_addrline(binfile->sdb_addrinfo, regs->address, full_file, regs->line);
-				free(full_file);
-			}
-		}
-
-		if (mode == RZ_MODE_PRINT) {
-			print("End of Sequence\n");
-		}
-		break;
-	case DW_LNE_set_address:
-		if (addr_size == 8) {
-			addr = READ64(buf);
-		} else {
-			addr = READ32(buf);
-		}
-		regs->address = addr;
-		if (mode == RZ_MODE_PRINT) {
-			print("set Address to 0x%" PFMT64x "\n", addr);
-		}
-		break;
-	case DW_LNE_define_file:
-		filename = (const char *)buf;
-
-		if (mode == RZ_MODE_PRINT) {
-			print("define_file\n");
-			print("filename %s\n", filename);
-		}
-
-		buf += (strlen(filename) + 1);
-		ut64 dir_idx;
-		ut64 ignore;
-		if (buf + 1 < buf_end) {
-			buf = rz_uleb128(buf, buf_end - buf, &dir_idx, NULL);
-		}
-		if (buf + 1 < buf_end) {
-			buf = rz_uleb128(buf, buf_end - buf, &ignore, NULL);
-		}
-		if (buf + 1 < buf_end) {
-			buf = rz_uleb128(buf, buf_end - buf, &ignore, NULL);
-		}
-		break;
-	case DW_LNE_set_discriminator:
-		buf = rz_uleb128(buf, buf_end - buf, &addr, NULL);
-		if (mode == RZ_MODE_PRINT) {
-			print("set Discriminator to %" PFMT64d "\n", addr);
-		}
-		regs->discriminator = addr;
-		break;
-	default:
-		if (mode == RZ_MODE_PRINT) {
-			print("Unexpected ext opcode %d\n", opcode);
-		}
-		buf = NULL;
-		break;
-	}
-#endif
-
 	return buf;
 }
 
@@ -929,6 +846,31 @@ RZ_API bool rz_bin_dwarf_line_op_run(Sdb *sdb_addrinfo, RzBinDwarfLineHeader *hd
 		}
 		break;
 	case RZ_BIN_DWARF_LINE_OP_TYPE_EXT:
+		switch (op->opcode) {
+		case DW_LNE_end_sequence:
+			regs->end_sequence = DWARF_TRUE;
+			if (sdb_addrinfo && hdr->file_names) {
+				// TODO: code duplication here
+				int fnidx = regs->file - 1;
+				if (fnidx >= 0 && fnidx < hdr->file_names_count) {
+					char *full_file = rz_bin_dwarf_line_header_get_full_file_path(sdb_addrinfo,
+						hdr, &hdr->file_names[fnidx]);
+					add_sdb_addrline(sdb_addrinfo, regs->address, full_file, regs->line);
+					free(full_file);
+				}
+			}
+			break;
+		case DW_LNE_set_address:
+			regs->address = op->args.set_address;
+			break;
+		case DW_LNE_define_file:
+			break;
+		case DW_LNE_set_discriminator:
+			regs->discriminator = op->args.set_discriminator;
+			break;
+		default:
+			return false;
+		}
 		break;
 	case RZ_BIN_DWARF_LINE_OP_TYPE_SPEC: {
 		regs->address += rz_bin_dwarf_line_header_get_spec_op_advance_pc(hdr, op->opcode);
